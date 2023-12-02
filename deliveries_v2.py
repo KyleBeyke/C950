@@ -252,8 +252,8 @@ def main():
     wgups.load_distance_data("distance_table.csv")
     print(wgups.distance_table)
     print(*wgups.look_up_package('410 S STATE ST'))
-    sources = wgups.confirm_matching_addresses()
-    print(sources)
+    missing_addresses = wgups.confirm_matching_addresses()
+    print(missing_addresses)
 
 if __name__ == "__main__":
     main()

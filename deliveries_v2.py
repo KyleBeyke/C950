@@ -225,6 +225,19 @@ class WGUPS:
                 # Print a message and add the missing address to the set
                 print(address + ': this package address not found in distance table.')
                 missing_addresses.add(address)
+                
+                # Compare common words in the address and source for potential partial match
+                for source in sources:
+                    source_words = source.split()
+                    address_words = address.split()
+                    common_words = []
+                    for word in source_words:
+                        if word in address_words:
+                            common_words.append(word)
+                    
+                    # If more than 2 common words, consider it a partial match
+                    if len(common_words) > 2:
+                        print('PARTIAL MATCH: ' + address + ' : ' + source)
             else:
                 pass  # Address found in sources, no action needed
 

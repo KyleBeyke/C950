@@ -49,7 +49,6 @@ class WGUPS:
                         print('true')
                     if (row[0] != "Package\nID" and flag): 
                         package = Package(*row[:7])
-                        print(row)
                         self.insert_into_hash_table(package)
 
     def load_distance_data(self, filepath = 'distance_table.csv'):

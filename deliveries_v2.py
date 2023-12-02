@@ -6,13 +6,16 @@ class Package:
     def __init__(self, package_id, address, city, state, zip_code, deadline, weight, notes=None):
         # Initialize Package attributes with provided values
         self.package_id = package_id
-        self.address = address
-        self.city = city
-        self.state = state
+        self.address = address.upper()
+        self.city = city.upper()
+        self.state = state.upper()
         self.zip_code = zip_code
-        self.deadline = deadline
+        self.deadline = deadline.upper()
         self.weight = weight
-        self.notes = notes
+        try:
+            self.notes = None
+        except AttributeError:
+            self.notes = notes
         self.location = "Hub"  # Initial location is set to "Hub"
         self.delivery_time = None  # Initialize delivery time as None
 
@@ -67,9 +70,6 @@ class WGUPS:
                     # Create a Package object with the data from the row
                     package = Package(*row[:7])
                     
-                    # Print the attributes of the Package object
-                    print(*package)
-                    
                     # Insert the Package object into the hash table
                     self.insert_into_hash_table(package)
 
@@ -82,41 +82,42 @@ class WGUPS:
         with open(filepath, 'r') as file:
             flag = False
             reader = csv.reader(file, dialect='excel')
-            
+
             # Iterate through each row in the CSV file
             for row in reader:
                 # Check if the current row is the header row
                 if row[0] == 'DISTANCE BETWEEN HUBS IN MILES':
                     flag = True
-                    
+
                     # Iterate through sources in the row (from index 2 to 30)
                     for source in row[2:31]:
                         # Split the string at newline characters, take the second part
                         # Split the result at commas, take the first part
-                        # Strip any leading or trailing whitespace and append to the list
-                        sources.append(source.split('\n')[1].split(',')[0].strip())
+                        # Strip any leading or trailing whitespace, convert to uppercase, and append to the list
+                        sources.append(source.split('\n')[1].split(',')[0].strip().upper())
+
+                    # Create the 'Source' key in distance_table and initialize it as an empty dictionary
+                    self.distance_table['Source'] = {}
                 elif flag:
                     # Split the string at newline characters, take the second part
                     # Split the result at commas, take the first part
-                    # Strip any leading or trailing whitespace and assign to 'destination'
-                    destination = row[0].split('\n')[1].split(',')[0].strip()
+                    # Strip any leading or trailing whitespace, convert to uppercase, and assign to 'destination'
+                    destination = row[0].split('\n')[1].split(',')[0].strip().upper()
                     index = 0
-                    
+
                     # Iterate through each source
                     for source in sources:
                         try:
                             distance = row[2 + index]
                             float_value = float(distance)
-                            
+
                             # Check if the distance is greater than 0
                             if float_value > 0:
-                                # Check if the source exists in the distance_table
-                                if source in self.distance_table:
-                                    # If source exists, append to the existing dictionary
-                                    self.distance_table[source][destination] = float_value
-                                else:
-                                    # If source doesn't exist, add a new entry for the source
-                                    self.distance_table[source] = {destination: float_value}
+                                # Append the distance to the 'Source' key in distance_table
+                                self.distance_table['Source'].setdefault(source, {})[destination] = float_value
+
+                                # Add symmetric entry for destination to source with the same distance
+                                self.distance_table['Source'].setdefault(destination, {})[source] = float_value
                             else:
                                 # Handle case where distance is not greater than 0
                                 pass
@@ -146,24 +147,100 @@ class WGUPS:
                 self.hash_table[index][key] = package
 
     def look_up_package(self, address):
+        # List to store matching packages
+        matching_packages = []
 
         for index in self.hash_table:
             for package_id, package in self.hash_table[index].items():
-                # Check if the address matches
-                if package.address == address:
-                    ([]).append(package)
+                # Check if the address matches (case-insensitive)
+                if package.address.upper() == address.upper():
+                    matching_packages.append(package)
 
         # Return the list of matching packages
-        return []
+        return matching_packages
 
+    def print_all_packages(self):
+        # Iterate through each index in the hash table
+        for index in self.hash_table:
+            # Iterate through each package_id and package in the current index
+            for package_id, package in self.hash_table[index].items():
+                # Print information for each package
+                print(f"Package ID: {package.package_id}")
+                print(f"Address: {package.address}")
+                print(f"City: {package.city}")
+                print(f"State: {package.state}")
+                print(f"Zip Code: {package.zip_code}")
+                print(f"Deadline: {package.deadline}")
+                print(f"Weight: {package.weight}")
+                print(f"Notes: {package.notes}")
+                print(f"Location: {package.location}")
+                print(f"Delivery Time: {package.delivery_time}")
+                print("---")  # Separation between packages
+
+    def get_all_package_addresses(self):
+        """
+        Return a set of all package addresses from the hash table.
+        """
+        all_addresses = set()
+
+        for index in self.hash_table:
+            for package_id, package in self.hash_table[index].items():
+                address = package.address
+                if address:
+                    all_addresses.add(address)
+
+        return all_addresses
+
+    def confirm_matching_addresses(self):
+        # Create sets to store unique sources, destinations, and missing addresses
+        sources = set()
+        destinations = set()
+        missing_addresses = set()
+
+        # Iterate through keys in the 'Source' column of the distance_table
+        for key in self.distance_table['Source'].keys():
+            sources.add(key)
+
+        # Iterate through values (dictionaries) in the 'Source' column of the distance_table
+        for value in self.distance_table['Source'].values():
+            # Iterate through keys in each dictionary (representing destinations)
+            for key in value.keys():
+                destinations.add(key)
+
+        # Check for sources that are not found in destinations
+        for source in sources:
+            if source not in destinations:
+                # Print a message and add the missing source to the set
+                print(source + ': this source has no matching destination in distance table.')
+                missing_addresses.add(source)
+            else:
+                pass  # Source found in destinations, no action needed
+
+        # Get all unique addresses from the package_table
+        addresses_set = self.get_all_package_addresses()
+
+        # Check for package addresses that are not found in distance_table
+        for address in addresses_set:
+            if address not in sources:
+                # Print a message and add the missing address to the set
+                print(address + ': this package address not found in distance table.')
+                missing_addresses.add(address)
+            else:
+                pass  # Address found in sources, no action needed
+
+        # Return the set of unique missing addresses
+        return missing_addresses
+ 
 def main():
     # Create an instance of WGUPS
     wgups = WGUPS()
-
     # Load packages and distance table
     wgups.load_packages("package_details.csv")
     wgups.load_distance_data("distance_table.csv")
     print(wgups.distance_table)
+    print(*wgups.look_up_package('410 S STATE ST'))
+    sources = wgups.confirm_matching_addresses()
+    print(sources)
 
 if __name__ == "__main__":
     main()

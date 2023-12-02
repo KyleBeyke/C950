@@ -53,6 +53,7 @@ class WGUPS:
                         self.insert_into_hash_table(package)
 
     def load_distance_data(self, filepath = 'distance_table.csv'):
+        sources = []
         # Read CSV file and populate the hash table
         with open(filepath, 'r') as file:
             flag = False
@@ -66,31 +67,37 @@ class WGUPS:
                         # Disregard content before the newline character
                         substring_after_newline = source[newline_index + 1:]
                         # Keep the characters until the comma
-                        source = substring_after_newline.strip()
-                        self.distance_table['Source'] = source
+                        address_before_comma = substring_after_newline.split(',')[0]
+                        # Strip any leading or trailing whitespace
+                        source = address_before_comma.strip()
+                        sources.append(source)
                 elif flag:
                     destination = row[0]
-                    # # Find the index of the newline character
+                    # Find the index of the newline character
                     newline_index = destination.find('\n')
-                    # # Disregard content before the newline character
+                    # Disregard content before the newline character
                     substring_after_newline = destination[newline_index + 1:]
-                    # # Keep the characters until the comma
-                    destination = substring_after_newline.strip()
-                    destination = destination.split(',')[0]
+                    # Keep the characters until the comma
+                    address_before_comma = substring_after_newline.split(',')[0]
+                    # Strip any trailing or leading whitespace
+                    destination = address_before_comma.strip()
                     index = 0
-                    for source in self.distance_table['Source']:
-                        print(source)
-                        self.distance_table['Destination'] = destination
-                        distance = row[2 + index]
+                    for source in sources:
                         try:
-                            float_value = float(obj)
+                            distance = row[2 + index]
+                            float_value = float(distance)
                             if float_value > 0:
-                                self.distance_table[destination] = distance
+                                # Check if the source exists
+                                if source in self.distance_table:
+                                    # If source exists, append to the existing dictionary
+                                    self.distance_table[source][destination] = float_value
+                                else:
+                                    # If source doesn't exist, add a new entry for the source
+                                    self.distance_table[source] = {destination: float_value}
                             else:
-                                self.distance_table[destination] = None
+                              pass
                         except ValueError:
-                            self.distance_table[destination] = None
-                        self.distance_table[destination] = distance
+                            pass
                         index += 1
                 else:
                     pass
@@ -113,9 +120,8 @@ def main():
 
     # Load packages and distance table
     wgups.load_packages("package_details.csv")
-    wgups.load_distance_table("distance_table.csv")
-    graph = load_distance_data()
-    print(look_up_package(1))
+    wgups.load_distance_data("distance_table.csv")
+    print(wgups.distance_table)
 
 if __name__ == "__main__":
     main()

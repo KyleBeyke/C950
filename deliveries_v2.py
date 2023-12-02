@@ -33,56 +33,93 @@ class Truck:
         self.max_capacity = max_capacity
         self.packages = []
 
-def load_distance_data(filepath = 'distance_table.csv'):
-    # Initialize an empty hash table (dictionary)
-    graph = {}
+class WGUPS:
+    def __init__(self):
+        self.trucks = [Truck(1), Truck(2), Truck(3)]  # Three trucks
+        self.distance_table = {}
+        self.hash_table = {}
 
-    # Read CSV file and populate the hash table
-    with open(filepath, 'r') as file:
-        flag = False
-        reader = csv.reader(file, dialect='excel')
-        for row in reader:
-            if row[0] == 'DISTANCE BETWEEN HUBS IN MILES':
-                flag = True
-                for source in row[2:31]:
-                     # Find the index of the newline character
-                    newline_index = source.find('\n')
-                    # Disregard content before the newline character
-                    substring_after_newline = source[newline_index + 1:]
-                    # Keep the characters until the comma
-                    source = substring_after_newline.strip()
-                    graph['Source'] = source
-            elif flag:
-                destination = row[0]
-                # # Find the index of the newline character
-                newline_index = destination.find('\n')
-                # # Disregard content before the newline character
-                substring_after_newline = destination[newline_index + 1:]
-                # # Keep the characters until the comma
-                destination = substring_after_newline.strip()
-                destination = destination.split(',')[0]
-                index = 0
-                for source in graph['Source']:
-                    print(source)
-                    graph['Destination'] = destination
-                    distance = row[2 + index]
-                    try:
-                        float_value = float(obj)
-                        if float_value > 0:
-                            graph[destination] = distance
-                        else:
-                            graph[destination] = None
-                    except ValueError:
-                        graph[destination] = None
-                    graph[destination] = distance
-                    index += 1
-            else:
-                pass
-    return graph
+    def load_packages(self, file_path):
+            with open(file_path, mode='r') as file:
+                flag = False
+                csv_reader = csv.reader(file)
+                for row in csv_reader:
+                    if row[0] == "Package\nID":
+                        flag = True
+                        print('true')
+                    if (row[0] != "Package\nID" and flag): 
+                        package = Package(*row[:7])
+                        print(row)
+                        self.insert_into_hash_table(package)
 
-graph = load_distance_data()
-for i in graph['Source']:
-    print(graph)
+    def load_distance_data(self, filepath = 'distance_table.csv'):
+        # Read CSV file and populate the hash table
+        with open(filepath, 'r') as file:
+            flag = False
+            reader = csv.reader(file, dialect='excel')
+            for row in reader:
+                if row[0] == 'DISTANCE BETWEEN HUBS IN MILES':
+                    flag = True
+                    for source in row[2:31]:
+                        # Find the index of the newline character
+                        newline_index = source.find('\n')
+                        # Disregard content before the newline character
+                        substring_after_newline = source[newline_index + 1:]
+                        # Keep the characters until the comma
+                        source = substring_after_newline.strip()
+                        self.distance_table['Source'] = source
+                elif flag:
+                    destination = row[0]
+                    # # Find the index of the newline character
+                    newline_index = destination.find('\n')
+                    # # Disregard content before the newline character
+                    substring_after_newline = destination[newline_index + 1:]
+                    # # Keep the characters until the comma
+                    destination = substring_after_newline.strip()
+                    destination = destination.split(',')[0]
+                    index = 0
+                    for source in self.distance_table['Source']:
+                        print(source)
+                        self.distance_table['Destination'] = destination
+                        distance = row[2 + index]
+                        try:
+                            float_value = float(obj)
+                            if float_value > 0:
+                                self.distance_table[destination] = distance
+                            else:
+                                self.distance_table[destination] = None
+                        except ValueError:
+                            self.distance_table[destination] = None
+                        self.distance_table[destination] = distance
+                        index += 1
+                else:
+                    pass
+
+    def insert_into_hash_table(self, package):
+        index = hash(package.package_id) % 100
+        if index not in self.hash_table:
+            self.hash_table[index] = package
+
+    def look_up_package(self, package_id):
+        index = hash(package_id) % 100
+        if index in self.hash_table:
+            package = self.hash_table[index]
+            return package
+        return None
+
+def main():
+    # Create an instance of WGUPS
+    wgups = WGUPS()
+
+    # Load packages and distance table
+    wgups.load_packages("package_details.csv")
+    wgups.load_distance_table("distance_table.csv")
+    graph = load_distance_data()
+    for i in graph['Source']:
+        print(graph)
+
+if __name__ == "__main__":
+    main()
 
 
 #             source = row['Source']

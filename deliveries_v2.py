@@ -115,8 +115,7 @@ def main():
     wgups.load_packages("package_details.csv")
     wgups.load_distance_table("distance_table.csv")
     graph = load_distance_data()
-    for i in graph['Source']:
-        print(graph)
+    print(look_up_package(1))
 
 if __name__ == "__main__":
     main()

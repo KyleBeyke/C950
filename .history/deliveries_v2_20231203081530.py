@@ -12,11 +12,13 @@ class Package:
         self.zip_code = zip_code
         self.deadline = deadline.upper()
         self.weight = weight
-        self.notes = notes
+        try:
+            self.notes = None
+        except AttributeError:
+            self.notes = notes
         self.location = "Hub"  # Initial location is set to "Hub"
         self.no_load_before = None  # Initialize load time as None
         self.required_truck = None  # Initialize required truck as None
-        self.package_accompaniment = None  # Initialize required package accompaniments
 
 
     def __iter__(self):
@@ -30,9 +32,7 @@ class Package:
         yield 'weight', self.weight
         yield 'notes', self.notes
         yield 'location', self.location
-        yield 'no_load_before', self.no_load_before
-        yield 'required_truck', self.required_truck
-        yield 'package_accompaniment', self.package_accompaniment
+        yield 'no_load_befor', self.delivery_time
 
 
 class Truck:

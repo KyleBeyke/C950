@@ -12,7 +12,7 @@ class Package:
         self.zip_code = zip_code
         self.deadline = deadline.upper()
         self.weight = weight
-        self.notes = notes
+        self.notes = None
         self.location = "Hub"  # Initial location is set to "Hub"
         self.no_load_before = None  # Initialize load time as None
         self.required_truck = None  # Initialize required truck as None

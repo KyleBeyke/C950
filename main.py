@@ -39,18 +39,6 @@ class WGUPS:
         self.distance_table = {}
         self.hash_table = {}
 
-    def insert_into_hash_table(self, package):
-        index = hash(package.package_id) % 100
-        if index not in self.hash_table:
-            self.hash_table[index] = package
-
-    def look_up_package(self, package_id):
-        index = hash(package_id) % 100
-        if index in self.hash_table:
-            package = self.hash_table[index]
-            return package
-        return None
-
     def load_packages(self, file_path):
         with open(file_path, mode='r') as file:
             flag = False

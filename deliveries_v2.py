@@ -17,7 +17,9 @@ class Package:
         except AttributeError:
             self.notes = notes
         self.location = "Hub"  # Initial location is set to "Hub"
-        self.delivery_time = None  # Initialize delivery time as None
+        self.no_load_before = None  # Initialize load time as None
+        self.required_truck = None  # Initialize required truck as None
+
 
     def __iter__(self):
         # Define an iterator to yield key-value pairs for object attributes
@@ -30,7 +32,7 @@ class Package:
         yield 'weight', self.weight
         yield 'notes', self.notes
         yield 'location', self.location
-        yield 'delivery_time', self.delivery_time
+        yield 'no_load_befor', self.delivery_time
 
 
 class Truck:
@@ -191,7 +193,24 @@ class WGUPS:
 
         return all_addresses
 
+    def get_all_packages(self):
+        """
+        Return a list of all packages
+        """
+        all_packages = []
+        
+        for index in self.hash_table:
+            for package_id, package in self.hash_table[index].items():
+                if package:
+                    all_packages.append(package)
+        
+        return all_packages
+
     def confirm_matching_addresses(self):
+        """
+        Check to make sure all address of packages have matches in the distance
+        table and return those that do not with partial matches if present
+        """
         # Create sets to store unique sources, destinations, and missing addresses
         sources = set()
         destinations = set()
@@ -243,17 +262,71 @@ class WGUPS:
 
         # Return the set of unique missing addresses
         return missing_addresses
+    
+    def extract_delayed_time(text):
+        # Check if the string contains 'Delayed on flight'
+        if 'Delayed on flight' in text:
+            # Define a regex pattern to match time in the format hh:mm am/pm
+            time_pattern = re.compile(r'(\d{1,2}:\d{2} [APMapm]{2})')
+
+            # Search for the time pattern in the text
+            match = time_pattern.search(text)
+
+            if match:
+                # Return the extracted time
+                return match.group(1)
+
+        # Return None if 'Delayed on flight' is not found or no match is found
+        return None
+
+    def extract_truck_id(text):
+        # Check if the string contains 'Can only be on truck'
+        if 'Can only be on truck' in text:
+            # Extract the numerical truck id using regex
+            truck_id_match = re.search(r'\d+', text)
+
+            if truck_id_match:
+                # Return the extracted numerical truck id
+                return int(truck_id_match.group())
+
+        # Return None if 'Can only be on truck' is not found or no match is found
+        return None
+
+    def extract_package_ids(text):
+        # Check if the string contains 'Must be delivered with'
+        if 'Must be delivered with' in text:
+            # Extract comma-delimited numerical package ids using regex
+            package_ids_match = re.search(r'\d+(,\s*\d+)*', text)
+
+            if package_ids_match:
+                # Split the matched string by commas and convert to a list of integers
+                return [int(package_id) for package_id in package_ids_match.group().split(',')]
+
+        # Return an empty list if 'Must be delivered with' is not found or no match is found
+        return []
  
+    def update_packages_with_notes(self):
+        """
+        Make changes to package attributes based on package notes
+        """
+        pass
+
+
 def main():
+    """
+    Function containing the main body of the program
+    """
     # Create an instance of WGUPS
     wgups = WGUPS()
     # Load packages and distance table
     wgups.load_packages("package_details.csv")
     wgups.load_distance_data("distance_table.csv")
-    print(wgups.distance_table)
-    print(*wgups.look_up_package('410 S STATE ST'))
-    missing_addresses = wgups.confirm_matching_addresses()
-    print(missing_addresses)
+    # print(wgups.distance_table)
+    # print(*wgups.look_up_package('410 S STATE ST'))
+    # missing_addresses = wgups.confirm_matching_addresses()
+    # print(missing_addresses)
+    packages = wgups.get_all_packages()
+    print(packages)
 
 if __name__ == "__main__":
     main()

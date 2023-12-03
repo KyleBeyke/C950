@@ -178,7 +178,7 @@ class WGUPS:
                 print(f"Location: {package.location}")
                 print(f"No load before: {package.no_load_before}")
                 print(f"Required Truck: {package.required_truck}")
-                print(f"Package must accompany": {package.package_accompaniment})
+                print(f"Package must accompany: {package.package_accompaniment}")
                 print("---")  # Separation between packages
 
     def get_all_package_addresses(self):

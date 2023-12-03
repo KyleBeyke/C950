@@ -176,7 +176,9 @@ class WGUPS:
                 print(f"Weight: {package.weight}")
                 print(f"Notes: {package.notes}")
                 print(f"Location: {package.location}")
-                print(f"Delivery Time: {package.delivery_time}")
+                print(f"No load before: {package.no_load_before}")
+                print(f"Required Truck: {package.required_truck}")
+                print(f"Package must accompany": {package.package_accompaniment})
                 print("---")  # Separation between packages
 
     def get_all_package_addresses(self):
@@ -186,7 +188,7 @@ class WGUPS:
         all_addresses = set()
 
         for index in self.hash_table:
-            for package_id, package in self.hash_table[index].items():
+            for package in self.hash_table[index].items():
                 address = package.address
                 if address:
                     all_addresses.add(address)
@@ -200,7 +202,7 @@ class WGUPS:
         all_packages = []
         
         for index in self.hash_table:
-            for package_id, package in self.hash_table[index].items():
+            for package in self.hash_table[index].items():
                 if package:
                     all_packages.append(package)
         
@@ -303,13 +305,41 @@ class WGUPS:
                 return [int(package_id) for package_id in package_ids_match.group().split(',')]
 
         # Return an empty list if 'Must be delivered with' is not found or no match is found
-        return []
+        return None
  
     def update_packages_with_notes(self):
         """
         Make changes to package attributes based on package notes
         """
-        pass
+        for index in self.hash_table:
+            for package_id, package in self.hash_table[index].items():
+                note = package.notes
+
+                # Extract and update 'no_load_before' attribute
+                if note:
+                    try:
+                        no_load_before = self.extract_delayed_time(note)
+                        self.hash_table[package_id]['no_load_before'] = no_load_before
+                        continue
+                    except TypeError:
+                        pass
+
+                    # Extract and update 'required_truck' attribute
+                    try:
+                        required_truck = self.extract_truck_id(note)
+                        self.hash_table[package_id]['required_truck'] = required_truck
+                        continue
+                    except TypeError:
+                        pass
+
+                    # Extract and update 'package_accompaniment' attribute
+                    try:
+                        package_accompaniment = self.extract_package_ids(note)
+                        self.hash_table[package_id]['package_accompaniment'] = package_accompaniment
+                        continue
+                    except TypeError:
+                        pass
+
 
 
 def main():
@@ -327,6 +357,10 @@ def main():
     # print(missing_addresses)
     packages = wgups.get_all_packages()
     print(packages)
+    wgups.update_packages_with_notes()
+    # Print all packages after updates
+    wgups.print_all_packages()
+
 
 if __name__ == "__main__":
     main()

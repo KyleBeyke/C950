@@ -33,56 +33,93 @@ class Truck:
         self.max_capacity = max_capacity
         self.packages = []
 
-def load_distance_data(filepath = 'distance_table.csv'):
-    # Initialize an empty hash table (dictionary)
-    graph = {}
+class WGUPS:
+    def __init__(self):
+        #initialize trucks
+        self.trucks = [Truck(1), Truck(2), Truck(3)]  # Three trucks
+        #initialize distance graph
+        self.distance_graph = {}
+        #initialize hash table
+        self.hash_table = {}
 
-    # Read CSV file and populate the hash table
-    with open(filepath, 'r') as file:
-        flag = False
-        reader = csv.reader(file, dialect='excel')
-        for row in reader:
-            if row[0] == 'DISTANCE BETWEEN HUBS IN MILES':
-                flag = True
-                for source in row[2:31]:
-                     # Find the index of the newline character
-                    newline_index = source.find('\n')
+    def insert_into_hash_table(self, package):
+        index = hash(package.package_id) % 100
+        if index not in self.hash_table:
+            self.hash_table[index] = package
+
+    def look_up_package(self, package_id):
+        index = hash(package_id) % 100
+        if index in self.hash_table:
+            package = self.hash_table[index]
+            return package
+        return None
+
+    def load_packages(self, file_path):
+        with open(file_path, mode='r') as file:
+            flag = False
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                if row[0] == "Package\nID":
+                    flag = True
+                elif flag: 
+                    package = Package(*row[:7])
+                    print(row)
+                    self.insert_into_hash_table(package)
+
+    def load_distance_graph(self, filepath = 'distance_table.csv'):
+       # Read CSV file and populate the hash table
+        with open(filepath, 'r') as file:
+            #initialize flag for source row being captured
+            flag = False
+            reader = csv.reader(file, dialect='excel')
+            #initialize array for sources
+            sources = []
+            for row in reader:
+                #find first row and load sources
+                if row[0] == 'DISTANCE BETWEEN HUBS IN MILES':
+                    flag = True
+                    for source in row[2:31]:
+                        # Find the index of the newline character
+                        newline_index = source.find('\n')
+                        # Disregard content before the newline character
+                        substring_after_newline = source[newline_index + 1:]
+                        # Keep the characters until the comma
+                        substring_after_newline = substring_after_newline.split(',')[0]
+                        # strip whitespace is present
+                        source = substring_after_newline.strip()
+                        # add source to array
+                        sources.append(source)
+                #grab destination:distance data for sources
+                elif flag:
+                    destination = row[0]
+                    # # Find the index of the newline character
+                    newline_index = destination.find('\n')
                     # Disregard content before the newline character
-                    substring_after_newline = source[newline_index + 1:]
+                    substring_after_newline = destination[newline_index + 1:]
                     # Keep the characters until the comma
-                    source = substring_after_newline.strip()
-                    graph['Source'] = source
-            elif flag:
-                destination = row[0]
-                # # Find the index of the newline character
-                newline_index = destination.find('\n')
-                # # Disregard content before the newline character
-                substring_after_newline = destination[newline_index + 1:]
-                # # Keep the characters until the comma
-                destination = substring_after_newline.strip()
-                destination = destination.split(',')[0]
-                index = 0
-                for source in graph['Source']:
-                    print(source)
-                    graph['Destination'] = destination
-                    distance = row[2 + index]
-                    try:
-                        float_value = float(obj)
-                        if float_value > 0:
-                            graph[destination] = distance
-                        else:
-                            graph[destination] = None
-                    except ValueError:
-                        graph[destination] = None
-                    graph[destination] = distance
-                    index += 1
-            else:
-                pass
-    return graph
+                    destination = substring_after_newline.strip()
+                    # Strip whitespace if present
+                    destination = destination.split(',')[0]
+                    index = 0
+                    for source in sources:
+                        distance = row[2 + index]
+                        try:
+                            float_value = float(distance)
+                            if float_value > 0:
+                                try:
+                                    self.distance_graph[source].update({destination : float_value})
+                                except KeyError:
+                                    self.distance_graph.update({source: {destination : distance}})
+                        except ValueError:
+                            pass
+                        index += 1
+                else:
+                    pass
 
-graph = load_distance_data()
-for i in graph['Source']:
-    print(graph)
+
+
+graph = load_distance_graph()
+print(graph)
 
 
 #             source = row['Source']

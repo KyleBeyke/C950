@@ -20,7 +20,7 @@ class Package:
 
 
 class Truck:
-    def __init__(self, truck_id, max_capacity=16, distance_restriction=140):
+    def __init__(self, truck_id, max_capacity=16):
         # Initialize Truck attributes with provided values
         self.truck_id = truck_id
         self.max_capacity = max_capacity
@@ -35,12 +35,12 @@ class WGUPS:
         self.hash_table = {}  # Dictionary to store packages hashed by package_id
         self.loaded_packages = set()  # Set to store package ids for packages that have been loaded onto a truck
         # Initialize priority and non-priority lists
-        self.first_priority_list = set()
-        self.non_priority_list = set()
-        self.last_priority_list = set()
-        self.truck_one_list = set()
-        self.truck_two_list = set()
-        self.truck_three_list = set()
+        self.first_priority_list = []
+        self.non_priority_list = []
+        self.last_priority_list = []
+        self.truck_one_list = []
+        self.truck_two_list = []
+        self.truck_three_list = []
 
 
     def load_packages(self, file_path):
@@ -483,17 +483,19 @@ class WGUPS:
                 try:
                     matching_packages = self.look_up_package(address)
                     if matching_packages:
-                        package_ids.update(package.package_id for package in matching_packages)
+                        package_ids.extend(package.package_id for package in matching_packages)
                 except KeyError as e:
                     print(f"Error: {e} while matching addresses in package table")
                     exit(1)   
 
             truck.packages =  package_ids
             
-    def calculate_truck_distance(self, truck):
+    def calculate_truck_distance(self, truck_id):
         """
         Calculate the total distance traveled by a truck
         """
+        # Get the truck with the specified truck_id
+        truck = self.trucks[truck_id - 1]
 
         # Initialize the total distance to 0
         total_distance = 0
@@ -512,9 +514,6 @@ class WGUPS:
             distance = self.distance_table['Source'][previous_address][package_address]
             total_distance += distance
             previous_address = package_address
-            
-        distance = self.distance_table['Source'][previous_address][package_address]
-            total_distance += distance    
 
         # Return the total distance
         return total_distance
@@ -528,55 +527,55 @@ class WGUPS:
             # If the package has a deadline and it's not end of day
             if package.deadline is not None and package.deadline != 'EOD':
                 # Add the package to the first priority list
-                first_priority_list.add(package_id)
+                first_priority_list.append(package_id)
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
+                        non_priority_list.append(package_id)
                         sorted_package_list.remove(package_id)
 
             # If the package has a specific load time
             elif package.no_load_before is not None:
                 # Add the package to the last priority list
-                last_priority_list.add(package_id)
+                last_priority_list.append(package_id)
 
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
+                        non_priority_list.append(package_id)
                         sorted_package_list.remove(package_id)
 
             # If the package is required by truck 1
             elif package.required_truck == 1:
                 # Add the package to truck 1
-                truck_one_list.add(package_id)
+                truck_one_list.append(package_id)
 
                 # If the package has accompaniments, add them to truck 1 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        truck_one_list.add(package_id)
+                        truck_one_list.append(package_id)
                         sorted_package_list.remove(package_id)
 
             # If the package is required by truck 2
             elif package.required_truck == 2:
                 # Add the package to truck 2
-                truck_two_list.add(package_id)
+                truck_two_list.append(package_id)
 
                 # If the package has accompaniments, add them to truck 2 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        truck_two_list.add(package_id)
+                        truck_two_list.append(package_id)
                         sorted_package_list.remove(package_id)
 
             # If the package is required by truck 3
             elif package.required_truck == 3:
                 # Add the package to truck 3
-                truck_three_list.add(package_id)
+                truck_three_list.append(package_id)
 
                 # If the package has accompaniments, add them to truck 3 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        truck_three_list.add(package_id)
+                        truck_three_list.append(package_id)
                         sorted_package_list.remove(package_id)
 
             # If the package's deadline is end of day
@@ -587,16 +586,19 @@ class WGUPS:
                 # If the package has accompaniments, add them to the non-priority list as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
+                        non_priority_list.append(package_id)
 
             # If the package doesn't fit any of the above conditions, add it to the last priority list
             else:
-                non_priority_list.add(package_id)
+                non_priority_list.append(package_id)
                 for package_id in package.package_accompaniment:
-                    last_priority_list.add(package_id)
-                    non_priority_list.add(package_id)
+                    last_priority_list.append(package_id)
+                    non_priority_list.append(package_id)
 
     def load_trucks(self):
+        # Optimize the truck route and sort the package list
+        sorted_package_list = self.optimize_truck_route(truck_id)
+
         # Initialize three trucks
         truck1 = Truck(1)
         truck2 = Truck(2)
@@ -606,46 +608,24 @@ class WGUPS:
         second_half_list_length = len(first_priority_list) - first_half_list_length           
         for package_id in first_priority_list[:first_half_list_length]:
             # Look up the package by its ID
-            if len(truck1.packages) < truck1.max_capacity and calculate_truck_distance(truck1) < self.distance_restriction:            
+            if len(truck1.packages) < truck1.max_capacity:            
                 truck1.packages.add(package_id)
                 self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck1) > self.distance_restriction:
-                    truck1.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
                 
         for package_id in first_priority_list[first_half_list_length:]:
-            if len(truck2.packages) < truck2.max_capacity and calculate_truck_distance(truck2) < self.distance_restriction:
+            if len(truck2.packages) < truck2.max_capacity:
                 truck2.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
+                self.loaded_packages.add(package_id)       
 
         for package_id in truck_one_list:
-            if len(truck1.packages) < truck1.max_capacity and calculate_truck_distance(truck1) < self.distance_restriction:
+            if len(truck1.packages) < truck1.max_capacity:
                 truck1.packages.add(package_id)
                 self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck1) > self.distance_restriction:
-                    truck1.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
 
         for package_id in truck_two_list:
-            if len(truck2.packages) < truck2.max_capacity and calculate_truck_distance(truck2) < self.distance_restriction:
+            if len(truck2.packages) < truck2.max_capacity:
                 truck2.packages.add(package_id)
                 self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
-                    
-        for package_id in             
-
-        for package_id in truck_three_list:
-            if len(truck3.packages) < truck3.max_capacity and calculate_truck_distance(truck3) < self.distance_restriction:
-                truck3.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)       
 
 
 def main():

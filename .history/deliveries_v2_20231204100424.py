@@ -20,7 +20,7 @@ class Package:
 
 
 class Truck:
-    def __init__(self, truck_id, max_capacity=16, distance_restriction=140):
+    def __init__(self, truck_id, max_capacity=16):
         # Initialize Truck attributes with provided values
         self.truck_id = truck_id
         self.max_capacity = max_capacity
@@ -33,14 +33,6 @@ class WGUPS:
         self.trucks = [Truck(1), Truck(2), Truck(3)]  # Three trucks are created
         self.distance_table = {}  # Dictionary to store distances between hubs
         self.hash_table = {}  # Dictionary to store packages hashed by package_id
-        self.loaded_packages = set()  # Set to store package ids for packages that have been loaded onto a truck
-        # Initialize priority and non-priority lists
-        self.first_priority_list = set()
-        self.non_priority_list = set()
-        self.last_priority_list = set()
-        self.truck_one_list = set()
-        self.truck_two_list = set()
-        self.truck_three_list = set()
 
 
     def load_packages(self, file_path):
@@ -426,227 +418,107 @@ class WGUPS:
 
         return package_ids  # Return the package IDs
 
-    def optimize_truck_routes(self):
+    def optimize_truck_route(self, truck_id):
         """
-        Use Dijkstra's algorithm to optimize the delivery route of packages for loaded truck.
+        Use Dijkstra's algorithm to optimize the delivery route of packages for a given truck.
         Returns a list of package IDs in the optimal delivery order.
         """
         hub_address = "4001 SOUTH 700 EAST"
-
+        
         # Get all package addresses
-        for truck in self.trucks:
-            all_addresses = []
+        all_addresses = self.get_all_package_addresses()
 
-            for package_id in truck.packages:
-                package = self.look_up_package_id(package_id)
-                all_addresses.append(package.address)
+        # Initialize distance and previous dictionaries for Dijkstra's algorithm
+        distances = {address: float('inf') for address in all_addresses}
+        previous = {address: None for address in all_addresses}
+        distances[hub_address] = 0
 
-            # Initialize distance and previous dictionaries for Dijkstra's algorithm
-            distances = {address: float('inf') for address in all_addresses}
-            previous = {address: None for address in all_addresses}
-            distances[hub_address] = 0
+        # Priority queue for Dijkstra's algorithm
+        priority_queue = [(0, hub_address)]
 
-            # Priority queue for Dijkstra's algorithm
-            priority_queue = [(0, hub_address)]
+        while priority_queue:
+            current_distance, current_address = heapq.heappop(priority_queue)
 
-            while priority_queue:
-                current_distance, current_address = heapq.heappop(priority_queue)
+            if current_distance > distances[current_address]:
+                continue
 
-                if current_distance > distances[current_address]:
-                    continue
-
-                for neighbor, weight in self.distance_table['Source'][current_address].items():
-                    new_distance = current_distance + weight
-                    try:
-                        if new_distance < distances[neighbor]:
-                            distances[neighbor] = new_distance
-                            previous[neighbor] = current_address
-                            heapq.heappush(priority_queue, (new_distance, neighbor))
-                    except KeyError as e:
-                        print(f"Error: {e} while looking up distance in distance table")
-                        exit(1)
-
-            # Reconstruct the optimal route by backtracking from the destination to the hub
-            optimal_route = []
-            for address in all_addresses:
-                current_address = address
-                while current_address != hub_address:
-                    optimal_route.append(current_address)
-                    current_address = previous[current_address]
-
-            # Reverse the route to get the starting from the hub
-            optimal_route.reverse()
-
-            # Convert addresses to package IDs
-            package_ids = set()
-            for address in optimal_route:
+            for neighbor, weight in self.distance_table['Source'][current_address].items():
+                new_distance = current_distance + weight
                 try:
-                    matching_packages = self.look_up_package(address)
-                    if matching_packages:
-                        package_ids.update(package.package_id for package in matching_packages)
+                    if new_distance < distances[neighbor]:
+                        distances[neighbor] = new_distance
+                        previous[neighbor] = current_address
+                        heapq.heappush(priority_queue, (new_distance, neighbor))
                 except KeyError as e:
-                    print(f"Error: {e} while matching addresses in package table")
-                    exit(1)   
+                    print(f"Error: {e} while looking up distance in distance table")
+                    exit(1)
 
-            truck.packages =  package_ids
-            
-    def calculate_truck_distance(self, truck):
-        """
-        Calculate the total distance traveled by a truck
-        """
+        # Reconstruct the optimal route by backtracking from the destination to the hub
+        optimal_route = []
+        for address in all_addresses:
+            current_address = address
+            while current_address != hub_address:
+                optimal_route.append(current_address)
+                current_address = previous[current_address]
 
-        # Initialize the total distance to 0
-        total_distance = 0
+        # Reverse the route to get the starting from the hub
+        optimal_route.reverse()
 
-        # Get the list of package IDs for the truck
-        package_ids = truck.packages
+        # Convert addresses to package IDs
+        package_ids = []
+        for address in optimal_route:
+            try:
+                matching_packages = self.look_up_package(address)
+                if matching_packages:
+                    package_ids.extend(package.package_id for package in matching_packages)
+            except KeyError as e:
+                print(f"Error: {e} while matching addresses in package table")
+                exit(1)   
 
-        previous_address = "4001 SOUTH 700 EAST"
-
-        # Get the package address for each package ID
-        for package_id in package_ids:
-            package = self.look_up_package_id(package_id)
-            package_address = package.address
-
-            # Get the distance from the hub to the package address
-            distance = self.distance_table['Source'][previous_address][package_address]
-            total_distance += distance
-            previous_address = package_address
-            
-        distance = self.distance_table['Source'][previous_address][package_address]
-            total_distance += distance    
-
-        # Return the total distance
-        return total_distance
-
-    def sort_packages(self, package_ids):
-        # Iterate over the sorted package list
-        for package_id in package_ids:
-            # Look up the package by its ID
-            package = self.look_up_package_id(package_id)
-
-            # If the package has a deadline and it's not end of day
-            if package.deadline is not None and package.deadline != 'EOD':
-                # Add the package to the first priority list
-                first_priority_list.add(package_id)
-                # If the package has accompaniments, add them to the non-priority list
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
-                        sorted_package_list.remove(package_id)
-
-            # If the package has a specific load time
-            elif package.no_load_before is not None:
-                # Add the package to the last priority list
-                last_priority_list.add(package_id)
-
-                # If the package has accompaniments, add them to the non-priority list
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
-                        sorted_package_list.remove(package_id)
-
-            # If the package is required by truck 1
-            elif package.required_truck == 1:
-                # Add the package to truck 1
-                truck_one_list.add(package_id)
-
-                # If the package has accompaniments, add them to truck 1 as well
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        truck_one_list.add(package_id)
-                        sorted_package_list.remove(package_id)
-
-            # If the package is required by truck 2
-            elif package.required_truck == 2:
-                # Add the package to truck 2
-                truck_two_list.add(package_id)
-
-                # If the package has accompaniments, add them to truck 2 as well
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        truck_two_list.add(package_id)
-                        sorted_package_list.remove(package_id)
-
-            # If the package is required by truck 3
-            elif package.required_truck == 3:
-                # Add the package to truck 3
-                truck_three_list.add(package_id)
-
-                # If the package has accompaniments, add them to truck 3 as well
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        truck_three_list.add(package_id)
-                        sorted_package_list.remove(package_id)
-
-            # If the package's deadline is end of day
-            elif package.deadline == 'EOD':
-                # Add the package to the non-priority list
-                non_priority_list.append(package_id)
-
-                # If the package has accompaniments, add them to the non-priority list as well
-                if package.package_accompaniment is not None:
-                    for package_id in package.package_accompaniment:
-                        non_priority_list.add(package_id)
-
-            # If the package doesn't fit any of the above conditions, add it to the last priority list
-            else:
-                non_priority_list.add(package_id)
-                for package_id in package.package_accompaniment:
-                    last_priority_list.add(package_id)
-                    non_priority_list.add(package_id)
+        return package_ids  # Return the package IDs
 
     def load_trucks(self):
-        # Initialize three trucks
+        sorted_package_list = self.optimize_truck_route(truck_id)
         truck1 = Truck(1)
         truck2 = Truck(2)
         truck3 = Truck(3)
-
-        first_half_list_length = len(first_priority_list) // 2
-        second_half_list_length = len(first_priority_list) - first_half_list_length           
-        for package_id in first_priority_list[:first_half_list_length]:
-            # Look up the package by its ID
-            if len(truck1.packages) < truck1.max_capacity and calculate_truck_distance(truck1) < self.distance_restriction:            
+        first_priority_list = []
+        non_priority_list = []
+        last_priority_list = []
+        for package_id in sorted_package_list:
+            package = self.look_up_package_id(package_id)
+            if package.no_load_before is not None:
+                last_priority_list.append(package_id)
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        non_priority_list.append(package_id)
+            elif package.required_truck == 1:
                 truck1.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck1) > self.distance_restriction:
-                    truck1.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
-                
-        for package_id in first_priority_list[first_half_list_length:]:
-            if len(truck2.packages) < truck2.max_capacity and calculate_truck_distance(truck2) < self.distance_restriction:
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        truck1.packages.add(package_id)
+            elif package.required_truck == 2:
                 truck2.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
-
-        for package_id in truck_one_list:
-            if len(truck1.packages) < truck1.max_capacity and calculate_truck_distance(truck1) < self.distance_restriction:
-                truck1.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck1) > self.distance_restriction:
-                    truck1.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
-
-        for package_id in truck_two_list:
-            if len(truck2.packages) < truck2.max_capacity and calculate_truck_distance(truck2) < self.distance_restriction:
-                truck2.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)
-                    
-        for package_id in             
-
-        for package_id in truck_three_list:
-            if len(truck3.packages) < truck3.max_capacity and calculate_truck_distance(truck3) < self.distance_restriction:
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        truck2.packages.add(package_id)
+            elif package.required_truck == 3:
                 truck3.packages.add(package_id)
-                self.loaded_packages.add(package_id)
-                if calculate_truck_distance(truck2) > self.distance_restriction:
-                    truck2.packages.remove(package_id)
-                    self.loaded_packages.remove(package_id)       
-
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        truck3.packages.add(package_id)  
+            elif package.deadline is not None and package.deadline != 'EOD':
+                first_priority_list.append(package_id)
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        first_priority_list.append(package_id)          
+            elif package.deadline == 'EOD':
+                non_priority_list.append(package_id)
+                if package.package_accompaniment is not None:
+                    for package_id in package.package_accompaniment:
+                        non_priority_list.append(package_id)            
+            else:
+                pass
 
 def main():
     """

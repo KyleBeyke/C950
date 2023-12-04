@@ -416,7 +416,7 @@ def main():
     # Create an instance of WGUPS
     wgups = WGUPS()
     # Load packages and distance table
-    wgups.load_packages("package_data.csv")
+    wgups.load_packages("package_details.csv")
     wgups.load_distance_data("distance_table.csv")
     # print(wgups.distance_table)
     # print(*wgups.look_up_package('410 S STATE ST'))

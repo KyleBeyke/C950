@@ -243,13 +243,6 @@ class WGUPS:
                     # If more than 2 common words, consider it a partial match
                     if len(common_words) > 2:
                         print('PARTIAL MATCH: ' + address + ' : ' + source)
-                        # Look up package ID for the package with the bad address
-                        packages = self.look_up_package(address)
-                        # Update it to the partial match source address
-                        # Add confirmation message
-                        for package in packages:
-                            self.edit_package_attribute(package.package_id, 'address', source)
-                            print(f"New address for package: {package.package_id} is {package.address}")
             else:
                 pass  # Address found in sources, no action needed
 
@@ -346,7 +339,7 @@ class WGUPS:
                     except TypeError as e:
                         pass
         
-    def optimize_delivery_route_for_all_packages(self):
+    def optimize_delivery_route(self):
         """
         Use Dijkstra's algorithm to optimize the delivery route of packages.
         Returns a list of package IDs in the optimal delivery order.
@@ -355,6 +348,7 @@ class WGUPS:
 
         # Get all package addresses
         all_addresses = self.get_all_package_addresses()
+        print(address for address in all_addresses)
 
         # Initialize distance and previous dictionaries for Dijkstra's algorithm
         distances = {address: float('inf') for address in all_addresses}
@@ -370,15 +364,17 @@ class WGUPS:
             if current_distance > distances[current_address]:
                 continue
 
-            for neighbor, weight in self.distance_table['Source'][current_address].items():
-                new_distance = current_distance + weight
-                try:
+            try:
+                for neighbor, weight in self.distance_table['Source'][current_address].items():
+                    print(neighbor, weight)
+                    new_distance = current_distance + weight
+
                     if new_distance < distances[neighbor]:
                         distances[neighbor] = new_distance
                         previous[neighbor] = current_address
                         heapq.heappush(priority_queue, (new_distance, neighbor))
-                except KeyError as e:
-                    print(f"Error: {e} while looking up distance in distance table")
+            except:
+                print("Error while matching addresses in address table")            
 
         # Reconstruct the optimal route by backtracking from the destination to the hub
         optimal_route = []
@@ -386,22 +382,25 @@ class WGUPS:
             current_address = address
             while current_address != hub_address:
                 optimal_route.append(current_address)
-                current_address = previous[current_address]
+                try:
+                    current_address = previous[current_address]
+                except:
+                    print("Error")    
 
         # Reverse the route to get the starting from the hub
         optimal_route.reverse()
 
-        # package_idsConvert addresses to package IDs
+        # Convert addresses to package IDs
         package_ids = []
         for address in optimal_route:
             try:
-                matching_packages = self.look_up_package(address)
+                matching_packages = look_up_package(address)
                 if matching_packages:
                     package_ids.extend(package.package_id for package in matching_packages)
             except KeyError as e:
-                print(f"Error: {e} while matching addresses in package table")    
+                print(f"Error: {e} while matching addresses in package table")        
 
-        return package_ids  # Return the package IDs
+        return package_ids
 
 
 
@@ -422,7 +421,7 @@ def main():
     wgups.update_packages_with_notes()
     # Print all packages after updates
     # wgups.print_all_packages()
-    print(wgups.optimize_delivery_route_for_all_packages())
+    print(wgups.optimize_delivery_route())
 
 
 if __name__ == "__main__":

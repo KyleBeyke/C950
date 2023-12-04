@@ -346,7 +346,7 @@ class WGUPS:
                     except TypeError as e:
                         pass
         
-    def optimize_delivery_route_for_all_packages(self):
+    def optimize_delivery_route(self):
         """
         Use Dijkstra's algorithm to optimize the delivery route of packages.
         Returns a list of package IDs in the optimal delivery order.
@@ -422,7 +422,7 @@ def main():
     wgups.update_packages_with_notes()
     # Print all packages after updates
     # wgups.print_all_packages()
-    print(wgups.optimize_delivery_route_for_all_packages())
+    print(wgups.optimize_delivery_route())
 
 
 if __name__ == "__main__":

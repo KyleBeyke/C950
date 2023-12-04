@@ -346,7 +346,7 @@ class WGUPS:
                     except TypeError as e:
                         pass
         
-    def optimize_delivery_route_for_all_packages(self):
+    def optimize_delivery_route_for_all_package(self):
         """
         Use Dijkstra's algorithm to optimize the delivery route of packages.
         Returns a list of package IDs in the optimal delivery order.

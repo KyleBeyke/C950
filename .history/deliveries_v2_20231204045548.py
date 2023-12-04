@@ -1,5 +1,5 @@
 import csv, re
-import heapq
+from heapq import heappop, heappush
 from datetime import datetime, timedelta
 
 class Package:
@@ -17,6 +17,22 @@ class Package:
         self.no_load_before = None  # Initialize load time as None
         self.required_truck = None  # Initialize required truck as None
         self.package_accompaniment = None  # Initialize required package accompaniments
+
+
+    def __iter__(self):
+        # Define an iterator to yield key-value pairs for object attributes
+        yield 'package_id', self.package_id
+        yield 'address', self.address
+        yield 'city', self.city
+        yield 'state', self.state
+        yield 'zip_code', self.zip_code
+        yield 'deadline', self.deadline
+        yield 'weight', self.weight
+        yield 'notes', self.notes
+        yield 'location', self.location
+        yield 'no_load_before', self.no_load_before
+        yield 'required_truck', self.required_truck
+        yield 'package_accompaniment', self.package_accompaniment
 
 
 class Truck:
@@ -172,10 +188,10 @@ class WGUPS:
         all_addresses = []
 
         for index in self.hash_table:
-            for package_id, package in self.hash_table[index].items():
+            for package in self.hash_table[index].items():
                 address = package.address
                 if address:
-                    all_addresses.append(address)
+                    all_addresses.add(address)
 
         return all_addresses
 
@@ -222,7 +238,7 @@ class WGUPS:
                 pass  # Source found in destinations, no action needed
 
         # Get all unique addresses from the package_table
-        addresses_set = set( self.get_all_package_addresses())
+        addresses_set = self.get_all_package_addresses()
 
         # Check for package addresses that are not found in distance_table
         for address in addresses_set:
@@ -243,13 +259,6 @@ class WGUPS:
                     # If more than 2 common words, consider it a partial match
                     if len(common_words) > 2:
                         print('PARTIAL MATCH: ' + address + ' : ' + source)
-                        # Look up package ID for the package with the bad address
-                        packages = self.look_up_package(address)
-                        # Update it to the partial match source address
-                        # Add confirmation message
-                        for package in packages:
-                            self.edit_package_attribute(package.package_id, 'address', source)
-                            print(f"New address for package: {package.package_id} is {package.address}")
             else:
                 pass  # Address found in sources, no action needed
 
@@ -346,7 +355,7 @@ class WGUPS:
                     except TypeError as e:
                         pass
         
-    def optimize_delivery_route_for_all_packages(self):
+    def optimize_delivery_route(self):
         """
         Use Dijkstra's algorithm to optimize the delivery route of packages.
         Returns a list of package IDs in the optimal delivery order.
@@ -354,7 +363,7 @@ class WGUPS:
         hub_address = "4001 SOUTH 700 EAST"  # Hub address
 
         # Get all package addresses
-        all_addresses = self.get_all_package_addresses()
+        all_addresses = list(self.get_all_package_addresses())
 
         # Initialize distance and previous dictionaries for Dijkstra's algorithm
         distances = {address: float('inf') for address in all_addresses}
@@ -372,13 +381,11 @@ class WGUPS:
 
             for neighbor, weight in self.distance_table['Source'][current_address].items():
                 new_distance = current_distance + weight
-                try:
-                    if new_distance < distances[neighbor]:
-                        distances[neighbor] = new_distance
-                        previous[neighbor] = current_address
-                        heapq.heappush(priority_queue, (new_distance, neighbor))
-                except KeyError as e:
-                    print(f"Error: {e} while looking up distance in distance table")
+
+                if new_distance < distances[neighbor]:
+                    distances[neighbor] = new_distance
+                    previous[neighbor] = current_address
+                    heapq.heappush(priority_queue, (new_distance, neighbor))
 
         # Reconstruct the optimal route by backtracking from the destination to the hub
         optimal_route = []
@@ -391,17 +398,14 @@ class WGUPS:
         # Reverse the route to get the starting from the hub
         optimal_route.reverse()
 
-        # package_idsConvert addresses to package IDs
+        # Convert addresses to package IDs
         package_ids = []
         for address in optimal_route:
-            try:
-                matching_packages = self.look_up_package(address)
-                if matching_packages:
-                    package_ids.extend(package.package_id for package in matching_packages)
-            except KeyError as e:
-                print(f"Error: {e} while matching addresses in package table")    
+            matching_packages = self.look_up_package(address)
+            if matching_packages:
+                package_ids.extend(package.package_id for package in matching_packages)
 
-        return package_ids  # Return the package IDs
+        return package_ids
 
 
 
@@ -421,8 +425,8 @@ def main():
     packages = wgups.get_all_packages()
     wgups.update_packages_with_notes()
     # Print all packages after updates
-    # wgups.print_all_packages()
-    print(wgups.optimize_delivery_route_for_all_packages())
+    wgups.print_all_packages()
+    print(wgups.optimize_delivery_route())
 
 
 if __name__ == "__main__":

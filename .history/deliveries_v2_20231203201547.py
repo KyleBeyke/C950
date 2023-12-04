@@ -40,7 +40,7 @@ class Truck:
         # Initialize Truck attributes with provided values
         self.truck_id = truck_id
         self.max_capacity = max_capacity
-        self.packages = set()  # Set to store package ids for packages loaded onto the truck
+        self.packages = set()  # List to store packages loaded onto the truck
 
 
 class WGUPS:

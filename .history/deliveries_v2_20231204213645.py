@@ -272,9 +272,8 @@ class WGUPS:
                         print('PARTIAL MATCH: ' + address + ' : ' + source)
                         # Look up package ID for the package with the bad address
                         packages = self.look_up_package(address)
-            # Add request to update the address for the package
                         # Update it to the partial match source address
-            # Add confirmation message
+                        # Add confirmation message
                         for package in packages:
                             self.edit_package_attribute(package.package_id, 'address', source)
                             print(f"New address for package: {package.package_id} is {package.address}")
@@ -445,7 +444,7 @@ class WGUPS:
         packages = truck.packages
 
         for package_id in packages:
-            package = self.look_up_package_by_id(package_id)
+            package = self.look_up_package_id(package_id)
             all_addresses.append(package.address)
 
         # Initialize distance and previous dictionaries for Dijkstra's algorithm
@@ -516,11 +515,11 @@ class WGUPS:
             package_address = package.address
 
             # Get the distance from the hub to the package address
-            distance = self.get_distance(previous_address, package_address)
+            distance = get_distance(previous_address, package_address)
             total_distance += distance
             previous_address = package_address
             
-        distance = self.get_distance(previous_address, self.hub_address)
+        distance = get_distance(previous_address, self.hub_address)
             total_distance += distance    
 
         # Return the total distance
@@ -593,7 +592,7 @@ class WGUPS:
 
             # If the package doesn't fit any of the above conditions, add it to the last priority list
             else:
-                self.non_priority_list.add(package_id)
+                non_priority_list.add(package_id)
                 for package_id in package.package_accompaniment:
                     self.last_priority_list.add(package_id)
                     self.non_priority_list.add(package_id)
@@ -608,14 +607,14 @@ class WGUPS:
                 # Add the package to the loaded packages set
                 self.loaded_packages.add(package_id)
                 # Optimize the truck route
-                self.optimize_truck_route(truck)
+                optimize_truck_route(truck)
                 # If the truck distance exceeds the restriction after adding the package, remove it
-                if self.calculate_truck_distance(truck) > truck.distance_restriction:
+                if calculate_truck_distance(truck) > truck.distance_restriction:
                     truck.packages.remove(package_id)
                     self.loaded_packages.remove(package_id)
                 else:
                     # Remove the loaded packages from the lists
-                    self.remove_loaded_packages_from_lists()
+                    remove_loaded_packages_from_lists()
 
     def remove_loaded_packages_from_lists(self):
         # Iterate over the loaded packages
@@ -679,8 +678,7 @@ def main():
     wgups.update_packages_with_notes()
     # Print all packages after updates
     # wgups.print_all_packages()
-    wgups.optimize_delivery_route_for_all_packages()
-    wgups.load_trucks()
+    print(wgups.optimize_delivery_route_for_all_packages())
 
 
 if __name__ == "__main__":

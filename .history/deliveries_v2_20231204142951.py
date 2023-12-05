@@ -30,11 +30,8 @@ class Truck:
 
 class WGUPS:
     def __init__(self):
-        # Initialize the WGUPS
-        # Initialize three trucks
-        self.truck1 = Truck(1)
-        self.truck2 = Truck(2)
-        self.truck3 = Truck(3)
+        # Initialize the WGUPS (World-Wide Package Unloading System)
+        self.trucks = [Truck(1), Truck(2), Truck(3)]  # Three trucks are created
         self.distance_table = {}  # Dictionary to store distances between hubs
         self.hash_table = {}  # Dictionary to store packages hashed by package_id
         self.loaded_packages = set()  # Set to store package ids for packages that have been loaded onto a truck
@@ -272,9 +269,8 @@ class WGUPS:
                         print('PARTIAL MATCH: ' + address + ' : ' + source)
                         # Look up package ID for the package with the bad address
                         packages = self.look_up_package(address)
-            # Add request to update the address for the package
                         # Update it to the partial match source address
-            # Add confirmation message
+                        # Add confirmation message
                         for package in packages:
                             self.edit_package_attribute(package.package_id, 'address', source)
                             print(f"New address for package: {package.package_id} is {package.address}")
@@ -445,7 +441,7 @@ class WGUPS:
         packages = truck.packages
 
         for package_id in packages:
-            package = self.look_up_package_by_id(package_id)
+            package = self.look_up_package_id(package_id)
             all_addresses.append(package.address)
 
         # Initialize distance and previous dictionaries for Dijkstra's algorithm
@@ -516,11 +512,11 @@ class WGUPS:
             package_address = package.address
 
             # Get the distance from the hub to the package address
-            distance = self.get_distance(previous_address, package_address)
+            distance = get_distance(previous_address, package_address)
             total_distance += distance
             previous_address = package_address
             
-        distance = self.get_distance(previous_address, self.hub_address)
+        distance = get_distance(previous_address, self.hub_address)
             total_distance += distance    
 
         # Return the total distance
@@ -535,68 +531,73 @@ class WGUPS:
             # If the package has a deadline and it's not end of day
             if package.deadline is not None and package.deadline != 'EOD':
                 # Add the package to the first priority list
-                self.top_priority_list.add(package_id)
+                first_priority_list.add(package_id)
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.add(package_id)
+                        non_priority_list.add(package_id)
+                        sorted_package_list.remove(package_id)
 
             # If the package has a specific load time
             elif package.no_load_before is not None:
                 # Add the package to the last priority list
-                self.last_priority_list.add(package_id)
+                last_priority_list.add(package_id)
 
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.add(package_id)
+                        non_priority_list.add(package_id)
+                        sorted_package_list.remove(package_id)
 
             # If the package is required by truck 1
             elif package.required_truck == 1:
                 # Add the package to truck 1
-                self.truck_one_list.add(package_id)
+                truck_one_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 1 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_one_list.add(package_id)
+                        truck_one_list.add(package_id)
+                        sorted_package_list.remove(package_id)
 
             # If the package is required by truck 2
             elif package.required_truck == 2:
                 # Add the package to truck 2
-                self.truck_two_list.add(package_id)
+                truck_two_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 2 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_two_list.add(package_id)
+                        truck_two_list.add(package_id)
+                        sorted_package_list.remove(package_id)
 
             # If the package is required by truck 3
             elif package.required_truck == 3:
                 # Add the package to truck 3
-                self.truck_three_list.add(package_id)
+                truck_three_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 3 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_three_list.add(package_id)
+                        truck_three_list.add(package_id)
+                        sorted_package_list.remove(package_id)
 
             # If the package's deadline is end of day
             elif package.deadline == 'EOD':
                 # Add the package to the non-priority list
-                self.non_priority_list.append(package_id)
+                non_priority_list.append(package_id)
 
                 # If the package has accompaniments, add them to the non-priority list as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.add(package_id)
+                        non_priority_list.add(package_id)
 
             # If the package doesn't fit any of the above conditions, add it to the last priority list
             else:
-                self.non_priority_list.add(package_id)
+                non_priority_list.add(package_id)
                 for package_id in package.package_accompaniment:
-                    self.last_priority_list.add(package_id)
-                    self.non_priority_list.add(package_id)
+                    last_priority_list.add(package_id)
+                    non_priority_list.add(package_id)
 
     def add_packages_to_truck(self, package_ids, truck):
         # Iterate over the package IDs
@@ -608,14 +609,14 @@ class WGUPS:
                 # Add the package to the loaded packages set
                 self.loaded_packages.add(package_id)
                 # Optimize the truck route
-                self.optimize_truck_route(truck)
+                optimize_truck_route(truck)
                 # If the truck distance exceeds the restriction after adding the package, remove it
-                if self.calculate_truck_distance(truck) > truck.distance_restriction:
+                if calculate_truck_distance(truck) > truck.distance_restriction:
                     truck.packages.remove(package_id)
                     self.loaded_packages.remove(package_id)
                 else:
                     # Remove the loaded packages from the lists
-                    self.remove_loaded_packages_from_lists()
+                    remove_loaded_packages_from_lists()
 
     def remove_loaded_packages_from_lists(self):
         # Iterate over the loaded packages
@@ -637,29 +638,34 @@ class WGUPS:
                 pass
 
     def load_trucks(self):
+        # Initialize three trucks
+        truck1 = Truck(1)
+        truck2 = Truck(2)
+        truck3 = Truck(3)
+
         # Split the priority list into two halves
         first_half_length = len(priority_list) // 2
-        first_priority_list = self.top_priority_list[:first_half_length]
-        second_priority_list = self.top_priority_list[first_half_list_length:]
+        first_priority_list = self.priority_list[:first_half_length]
+        second_priority_list = self.priority_list[first_half_list_length:]
 
         # Load the first half of the priority list into truck 1
-        load_packages_to_truck(first_priority_list, self.truck1)
+        load_packages_to_truck(first_priority_list, truck1)
 
         # Load the second half of the priority list into truck 2
-        load_packages_to_truck(second_priority_list, self.truck2)
+        load_packages_to_truck(second_priority_list, truck2)
 
         # Load the truck-specific lists into their respective trucks
-        load_packages_to_truck(self.truck1_list, self.truck1)
-        load_packages_to_truck(self.truck2_list, self.truck2)
-        load_packages_to_truck(self.truck3_list, self.truck3)
+        load_packages_to_truck(self.truck1_list, truck1)
+        load_packages_to_truck(self.truck2_list, truck2)
+        load_packages_to_truck(self.truck3_list, truck3)
 
         # Load the non-priority list into all trucks
-        load_packages_to_truck(self.non_priority_list, self.truck1)
-        load_packages_to_truck(self.non_priority_list, self.truck2)
-        load_packages_to_truck(self.non_priority_list, self.truck3)
+        load_packages_to_truck(self.non_priority_list, truck1)
+        load_packages_to_truck(self.non_priority_list, truck2)
+        load_packages_to_truck(self.non_priority_list, truck3)
 
         # Load the last priority list into truck 3
-        load_packages_to_truck(self.last_priority_list, self.truck3)          
+        load_packages_to_truck(self.last_priority_list, truck3)          
 
 
 def main():
@@ -679,8 +685,7 @@ def main():
     wgups.update_packages_with_notes()
     # Print all packages after updates
     # wgups.print_all_packages()
-    wgups.optimize_delivery_route_for_all_packages()
-    wgups.load_trucks()
+    print(wgups.optimize_delivery_route_for_all_packages())
 
 
 if __name__ == "__main__":

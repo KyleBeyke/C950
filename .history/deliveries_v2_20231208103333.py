@@ -29,16 +29,9 @@ class Truck:
 
 
 class WGUPS:
-    """
-    WGUPS class represents the delivery system of the WGUPS company.
-    It manages the trucks, packages, distance data, and provides various methods for package lookup and management.
-    """
-
     def __init__(self):
-        """
-        Initializes the WGUPS delivery system.
-        """
-        # Initialize the trucks
+        # Initialize the WGUPS
+        # Initialize three trucks
         self.truck1 = Truck(1)
         self.truck2 = Truck(2)
         self.truck3 = Truck(3)
@@ -55,13 +48,8 @@ class WGUPS:
         self.truck_three_list = set()
         self.hub_address = "4001 SOUTH 700 EAST"  # Hub address
 
-    def load_packages(self, file_path):
-        """
-        Loads package data from a CSV file and inserts it into the hash table.
 
-        Args:
-            file_path (str): The path to the CSV file containing package data.
-        """
+    def load_packages(self, file_path):
         # Open the CSV file in read mode
         with open(file_path, mode='r') as file:
             # Initialize a flag to identify the start of package data
@@ -85,13 +73,8 @@ class WGUPS:
                     # Insert the Package object into the hash table
                     self.insert_into_hash_table(package)
 
-    def load_distance_data(self, filepath='distance_table.csv'):
-        """
-        Loads distance data from a CSV file and populates the distance table.
 
-        Args:
-            filepath (str): The path to the CSV file containing distance data. Default is 'distance_table.csv'.
-        """
+    def load_distance_data(self, filepath='distance_table.csv'):
         # List to store source values
         sources = []
 
@@ -146,13 +129,8 @@ class WGUPS:
                     # Skip rows until the header row is found
                     pass
 
-    def insert_into_hash_table(self, package):
-        """
-        Inserts a package into the hash table.
 
-        Args:
-            package (Package): The package object to be inserted.
-        """
+    def insert_into_hash_table(self, package):
         # Use package_id as the key for hashing
         key = package.package_id
         index = hash(key) % 100
@@ -169,15 +147,6 @@ class WGUPS:
                 self.hash_table[index][key] = package
 
     def look_up_package(self, address):
-        """
-        Looks up packages with a matching address.
-
-        Args:
-            address (str): The address to search for.
-
-        Returns:
-            list: A list of Package objects with matching addresses.
-        """
         # List to store matching packages
         matching_packages = []
 
@@ -189,17 +158,8 @@ class WGUPS:
 
         # Return the list of matching packages
         return matching_packages
-
+    
     def look_up_package_id(self, package_id):
-        """
-        Looks up a package by its package_id.
-
-        Args:
-            package_id (str): The package_id to search for.
-
-        Returns:
-            Package or None: The Package object with the matching package_id, or None if not found.
-        """
         # Use package_id as the key for hashing
         key = package_id
         index = hash(key) % 100
@@ -213,9 +173,6 @@ class WGUPS:
             return None
 
     def print_all_packages(self):
-        """
-        Prints information for all packages in the hash table.
-        """
         # Iterate through each index in the hash table
         for index in self.hash_table:
             # Iterate through each package_id and package in the current index
@@ -237,10 +194,7 @@ class WGUPS:
 
     def get_all_package_addresses(self):
         """
-        Returns a set of all package addresses from the hash table.
-
-        Returns:
-            set: A set of all package addresses.
+        Return a set of all package addresses from the hash table.
         """
         all_addresses = []
 
@@ -254,10 +208,7 @@ class WGUPS:
 
     def get_all_packages(self):
         """
-        Returns a list of all packages in the hash table.
-
-        Returns:
-            list: A list of all packages.
+        Return a list of all packages
         """
         all_packages = []
         
@@ -270,8 +221,8 @@ class WGUPS:
 
     def confirm_matching_addresses(self):
         """
-        Checks if all addresses of packages have matches in the distance table.
-        Returns the addresses that do not have matches, along with partial matches if present.
+        Check to make sure all address of packages have matches in the distance
+        table and return those that do not with partial matches if present
         """
         # Create sets to store unique sources, destinations, and missing addresses
         sources = set()
@@ -298,7 +249,7 @@ class WGUPS:
                 pass  # Source found in destinations, no action needed
 
         # Get all unique addresses from the package_table
-        addresses_set = set(self.get_all_package_addresses())
+        addresses_set = set( self.get_all_package_addresses())
 
         # Check for package addresses that are not found in distance_table
         for address in addresses_set:
@@ -545,72 +496,6 @@ class WGUPS:
                 exit(1)   
 
         truck.packages = package_ids
-        
-    def optimize_package_list_route(self, packages):
-        """
-        Use Dijkstra's algorithm to optimize the delivery route of packages for loaded truck.
-        
-        Args:
-            packages (list): A list of package IDs to be delivered.
-            
-        Returns:
-            set: A set of package IDs in the optimal delivery order.
-        """
-        all_addresses = []
-
-        # Populate all_addresses with package addresses
-        for package_id in packages:
-            package = self.look_up_package_by_id(package_id)
-            all_addresses.append(package.address)
-
-        # Initialize distance and previous dictionaries for Dijkstra's algorithm
-        distances = {address: float('inf') for address in all_addresses}
-        previous = {address: None for address in all_addresses}
-        distances[self.hub_address] = 0
-
-        # Priority queue for Dijkstra's algorithm
-        priority_queue = [(0, self.hub_address)]
-
-        while priority_queue:
-            current_distance, current_address = heapq.heappop(priority_queue)
-
-            if current_distance > distances[current_address]:
-                continue
-
-            for neighbor, weight in self.distance_table['Source'][current_address].items():
-                new_distance = current_distance + weight
-                try:
-                    if new_distance < distances[neighbor]:
-                        distances[neighbor] = new_distance
-                        previous[neighbor] = current_address
-                        heapq.heappush(priority_queue, (new_distance, neighbor))
-                except KeyError as e:
-                    print(f"Error: {e} while looking up distance in distance table")
-                    exit(1)
-
-        # Reconstruct the optimal route by backtracking from the destination to the hub
-        optimal_route = []
-        for address in all_addresses:
-            current_address = address
-            while current_address != hub_address:
-                optimal_route.append(current_address)
-                current_address = previous[current_address]
-
-        # Reverse the route to get the starting from the hub
-        optimal_route.reverse()
-
-        # Convert addresses to package IDs
-        package_ids = set()
-        for address in optimal_route:
-            try:
-                matching_packages = self.look_up_package(address)
-                if matching_packages:
-                    package_ids.update(package.package_id for package in matching_packages)
-            except KeyError as e:
-                print(f"Error: {e} while matching addresses in package table")
-                exit(1)   
-
-        return package_ids
             
     def calculate_truck_distance(self, truck):
         """
@@ -712,15 +597,15 @@ class WGUPS:
 
     def add_packages_to_truck(self, package_ids, truck):
         # Iterate over the package IDs
-        # Optimize the packages as a route
-        package_ids = self.optimize_package_list_route(package_ids) # may be unnecessary
         for package_id in package_ids:
             # Check if the truck has space and if it hasn't exceeded its distance restriction
-            if len(truck.packages) < truck.max_capacity and self.calculate_truck_distance(truck) < truck.distance_restriction:            
+            if len(truck.packages) < truck.max_capacity and calculate_truck_distance(truck) < truck.distance_restriction:            
                 # Add the package to the truck
                 truck.packages.add(package_id)
                 # Add the package to the loaded packages set
                 self.loaded_packages.add(package_id)
+                # Optimize the truck route
+                self.optimize_truck_route(truck)
                 # If the truck distance exceeds the restriction after adding the package, remove it
                 if self.calculate_truck_distance(truck) > truck.distance_restriction:
                     truck.packages.remove(package_id)
@@ -772,7 +657,6 @@ class WGUPS:
 
         # Load the last priority list into truck 3
         load_packages_to_truck(self.last_priority_list, self.truck3)          
-
 
 
 def main():

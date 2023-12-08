@@ -713,7 +713,7 @@ class WGUPS:
     def add_packages_to_truck(self, package_ids, truck):
         # Iterate over the package IDs
         # Optimize the packages as a route
-        package_ids = self.optimize_package_list_route(package_ids) # may be unnecessary
+        package_ids = self.optimize_package_list_route(package_ids)
         for package_id in package_ids:
             # Check if the truck has space and if it hasn't exceeded its distance restriction
             if len(truck.packages) < truck.max_capacity and self.calculate_truck_distance(truck) < truck.distance_restriction:            

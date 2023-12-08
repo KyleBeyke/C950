@@ -27,7 +27,7 @@ class Truck:
         # Initialize Truck attributes with provided values
         self.truck_id = truck_id
         self.max_capacity = max_capacity
-        self.packages = []  # Set to store package ids for packages loaded onto the truck
+        self.packages = set()  # Set to store package ids for packages loaded onto the truck
         self.location = self.hub_address
 
 
@@ -47,15 +47,15 @@ class WGUPS:
         self.truck3 = Truck(3)
         self.distance_table = {}  # Dictionary to store distances between hubs
         self.hash_table = {}  # Dictionary to store packages hashed by package_id
-        self.loaded_packages = []  # List to store package ids for packages that have been loaded onto a truck
-        self.delivered_packages = []  # List to store package ids for packages that have been delivered
+        self.loaded_packages = set()  # Set to store package ids for packages that have been loaded onto a truck
+        self.delivered_packages = set()  # Set to store package ids for packages that have been delivered
         # Initialize priority and non-priority lists
-        self.top_priority_list = []
-        self.non_priority_list = []
-        self.last_priority_list = []
-        self.truck_one_list = []
-        self.truck_two_list = []
-        self.truck_three_list = []
+        self.top_priority_list = set()
+        self.non_priority_list = set()
+        self.last_priority_list = set()
+        self.truck_one_list = set()
+        self.truck_two_list = set()
+        self.truck_three_list = set()
         self.hub_address = "4001 SOUTH 700 EAST"  # Hub address
 
     def load_packages(self, file_path):
@@ -277,38 +277,38 @@ class WGUPS:
         Returns the addresses that do not have matches, along with partial matches if present.
         """
         # Create sets to store unique sources, destinations, and missing addresses
-        sources = []
-        destinations = []
-        missing_addresses = []
+        sources = set()
+        destinations = set()
+        missing_addresses = set()
 
         # Iterate through keys in the 'Source' column of the distance_table
         for key in self.distance_table['Source'].keys():
-            sources.append(key)
+            sources.add(key)
 
         # Iterate through values (dictionaries) in the 'Source' column of the distance_table
         for value in self.distance_table['Source'].values():
             # Iterate through keys in each dictionary (representing destinations)
             for key in value.keys():
-                destinations.append(key)
+                destinations.add(key)
 
         # Check for sources that are not found in destinations
         for source in sources:
             if source not in destinations:
                 # Print a message and add the missing source to the set
                 print(source + ': this source has no matching destination in distance table.')
-                missing_addresses.append(source)
+                missing_addresses.add(source)
             else:
                 pass  # Source found in destinations, no action needed
 
         # Get all unique addresses from the package_table
-        addresses_set = self.get_all_package_addresses()
+        addresses_set = set(self.get_all_package_addresses())
 
         # Check for package addresses that are not found in distance_table
         for address in addresses_set:
             if address not in sources:
                 # Print a message and add the missing address to the set
                 print(address + ': this package address not found in distance table.')
-                missing_addresses.append(address)
+                missing_addresses.add(address)
                 
                 # Compare common words in the address and source for potential partial match
                 for source in sources:
@@ -529,7 +529,7 @@ class WGUPS:
         optimal_route = []
         for address in all_addresses:
             current_address = address
-            while current_address != self.hub_address:
+            while current_address != hub_address:
                 optimal_route.append(current_address)
                 current_address = previous[current_address]
 
@@ -537,7 +537,7 @@ class WGUPS:
         optimal_route.reverse()
 
         # Convert addresses to package IDs
-        package_ids = []
+        package_ids = set()
         for address in optimal_route:
             try:
                 matching_packages = self.look_up_package(address)
@@ -548,9 +548,8 @@ class WGUPS:
                 exit(1)   
 
         truck.packages = package_ids
-
-    # MODIFIED TO TAKE POSITION INTO ACCOUNT    
-    def optimize_package_list_route(self, packages, current_location):
+        
+    def optimize_package_list_route(self, packages):
         """
         Use Dijkstra's algorithm to optimize the delivery route of packages for loaded truck.
         
@@ -573,7 +572,7 @@ class WGUPS:
         distances[self.hub_address] = 0
 
         # Priority queue for Dijkstra's algorithm
-        priority_queue = [(0, current_location)]
+        priority_queue = [(0, self.hub_address)]
 
         while priority_queue:
             current_distance, current_address = heapq.heappop(priority_queue)
@@ -604,7 +603,7 @@ class WGUPS:
         optimal_route.reverse()
 
         # Convert addresses to package IDs
-        package_ids = []
+        package_ids = set()
         for address in optimal_route:
             try:
                 matching_packages = self.look_up_package(address)
@@ -651,51 +650,51 @@ class WGUPS:
             # If the package has a deadline and it's not end of day
             if package.deadline is not None and package.deadline != 'EOD':
                 # Add the package to the first priority list
-                self.top_priority_list.append(package_id)
+                self.top_priority_list.add(package_id)
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.append(package_id)
+                        self.non_priority_list.add(package_id)
 
             # If the package has a specific load time
             elif package.no_load_before is not None:
                 # Add the package to the last priority list
-                self.last_priority_list.append(package_id)
+                self.last_priority_list.add(package_id)
 
                 # If the package has accompaniments, add them to the non-priority list
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.append(package_id)
+                        self.non_priority_list.add(package_id)
 
             # If the package is required by truck 1
             elif package.required_truck == 1:
                 # Add the package to truck 1
-                self.truck_one_list.append(package_id)
+                self.truck_one_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 1 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_one_list.append(package_id)
+                        self.truck_one_list.add(package_id)
 
             # If the package is required by truck 2
             elif package.required_truck == 2:
                 # Add the package to truck 2
-                self.truck_two_list.append(package_id)
+                self.truck_two_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 2 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_two_list.append(package_id)
+                        self.truck_two_list.add(package_id)
 
             # If the package is required by truck 3
             elif package.required_truck == 3:
                 # Add the package to truck 3
-                self.truck_three_list.append(package_id)
+                self.truck_three_list.add(package_id)
 
                 # If the package has accompaniments, add them to truck 3 as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.truck_three_list.append(package_id)
+                        self.truck_three_list.add(package_id)
 
             # If the package's deadline is end of day
             elif package.deadline == 'EOD':
@@ -705,37 +704,33 @@ class WGUPS:
                 # If the package has accompaniments, add them to the non-priority list as well
                 if package.package_accompaniment is not None:
                     for package_id in package.package_accompaniment:
-                        self.non_priority_list.append(package_id)
+                        self.non_priority_list.add(package_id)
 
             # If the package doesn't fit any of the above conditions, add it to the last priority list
             else:
-                self.non_priority_list.append(package_id)
+                self.non_priority_list.add(package_id)
                 for package_id in package.package_accompaniment:
-                    self.last_priority_list.append(package_id)
-                    self.non_priority_list.append(package_id)
+                    self.last_priority_list.add(package_id)
+                    self.non_priority_list.add(package_id)
 
-    # MODIFY TO TAKE TRUCK POSITION INTO ACCOUNT
     def add_packages_to_truck(self, package_ids, truck):
         # Iterate over the package IDs
-        if len(truck.packages) > 0:
-            current_address = self.look_up_package_id(truck.packages[-1]).address
-        elif len(truck.packages) == 0:
-            current_address = self.hub_address
         # Optimize the packages as a route
-        package_ids = self.optimize_package_list_route(package_ids, current_address) # may be unnecessary
+        package_ids = self.optimize_package_list_route(package_ids) # may be unnecessary
         for package_id in package_ids:
             # Check if the truck has space and if it hasn't exceeded its distance restriction
             if len(truck.packages) < truck.max_capacity and self.calculate_truck_distance(truck) < truck.distance_restriction:            
                 # Add the package to the truck
-                truck.packages.append(package_id)
+                truck.packages.add(package_id)
                 # Add the package to the loaded packages set
-                self.loaded_packages.a(package_id)
+                self.loaded_packages.add(package_id)
                 # If the truck distance exceeds the restriction after adding the package, remove it
                 if self.calculate_truck_distance(truck) > truck.distance_restriction:
                     truck.packages.remove(package_id)
                     self.loaded_packages.remove(package_id)
-        # Remove the loaded packages from the lists
-        self.remove_loaded_packages_from_lists()
+                else:
+                    # Remove the loaded packages from the lists
+                    self.remove_loaded_packages_from_lists()
 
     def remove_loaded_packages_from_lists(self):
         # Iterate over the loaded packages
@@ -743,39 +738,43 @@ class WGUPS:
             # Remove the package from the list it belongs to
             if package_id in self.first_priority_list:
                 self.first_priority_list.remove(package_id)
-            elif package_id in self.non_priority_list:
+            elif package_id in non_priority_list:
                 self.non_priority_list.remove(package_id)
-            elif package_id in self.last_priority_list:
+            elif package_id in last_priority_list:
                 self.last_priority_list.remove(package_id)
-            elif package_id in self.truck_one_list:
+            elif package_id in truck_one_list:
                 self.truck_one_list.remove(package_id)
-            elif package_id in self.truck_two_list:
+            elif package_id in truck_two_list:
                 self.truck_two_list.remove(package_id)
-            elif package_id in self.truck_three_list:
+            elif package_id in truck_three_list:
                 self.truck_three_list.remove(package_id)
             else:
                 pass
 
     def load_trucks(self):
         # Split the priority list into two halves
-        first_half_length = len(self.priority_list) // 2
+        first_half_length = len(priority_list) // 2
         first_priority_list = self.top_priority_list[:first_half_length]
-        second_priority_list = self.top_priority_list[first_half_length:]
+        second_priority_list = self.top_priority_list[first_half_list_length:]
 
         # Load the first half of the priority list into truck 1
-        self.load_packages_to_truck(first_priority_list, self.truck1)
+        load_packages_to_truck(first_priority_list, self.truck1)
 
         # Load the second half of the priority list into truck 2
-        self.load_packages_to_truck(second_priority_list, self.truck2)
+        load_packages_to_truck(second_priority_list, self.truck2)
 
         # Load the truck-specific lists into their respective trucks
-        # followed by the non-priority list
-        self.load_packages_to_truck(self.truck1_list + self.non_priority_list, self.truck1)
-        self.load_packages_to_truck(self.truck2_list + self.non_priority_list, self.truck2)
-        self.load_packages_to_truck(self.truck3_list + self.non_priority_list, self.truck3)
+        load_packages_to_truck(self.truck1_list, self.truck1)
+        load_packages_to_truck(self.truck2_list, self.truck2)
+        load_packages_to_truck(self.truck3_list, self.truck3)
+
+        # Load the non-priority list into all trucks
+        load_packages_to_truck(self.non_priority_list, self.truck1)
+        load_packages_to_truck(self.non_priority_list, self.truck2)
+        load_packages_to_truck(self.non_priority_list, self.truck3)
 
         # Load the last priority list into truck 3
-        self.load_packages_to_truck(self.non_priority_list + self.last_priority_list, self.truck3)          
+        load_packages_to_truck(self.last_priority_list, self.truck3)          
 
 
 

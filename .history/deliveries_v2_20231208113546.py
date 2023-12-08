@@ -743,39 +743,43 @@ class WGUPS:
             # Remove the package from the list it belongs to
             if package_id in self.first_priority_list:
                 self.first_priority_list.remove(package_id)
-            elif package_id in self.non_priority_list:
+            elif package_id in non_priority_list:
                 self.non_priority_list.remove(package_id)
-            elif package_id in self.last_priority_list:
+            elif package_id in last_priority_list:
                 self.last_priority_list.remove(package_id)
-            elif package_id in self.truck_one_list:
+            elif package_id in truck_one_list:
                 self.truck_one_list.remove(package_id)
-            elif package_id in self.truck_two_list:
+            elif package_id in truck_two_list:
                 self.truck_two_list.remove(package_id)
-            elif package_id in self.truck_three_list:
+            elif package_id in truck_three_list:
                 self.truck_three_list.remove(package_id)
             else:
                 pass
 
     def load_trucks(self):
         # Split the priority list into two halves
-        first_half_length = len(self.priority_list) // 2
+        first_half_length = len(priority_list) // 2
         first_priority_list = self.top_priority_list[:first_half_length]
-        second_priority_list = self.top_priority_list[first_half_length:]
+        second_priority_list = self.top_priority_list[first_half_list_length:]
 
         # Load the first half of the priority list into truck 1
-        self.load_packages_to_truck(first_priority_list, self.truck1)
+        load_packages_to_truck(first_priority_list, self.truck1)
 
         # Load the second half of the priority list into truck 2
-        self.load_packages_to_truck(second_priority_list, self.truck2)
+        load_packages_to_truck(second_priority_list, self.truck2)
 
         # Load the truck-specific lists into their respective trucks
-        # followed by the non-priority list
-        self.load_packages_to_truck(self.truck1_list + self.non_priority_list, self.truck1)
-        self.load_packages_to_truck(self.truck2_list + self.non_priority_list, self.truck2)
-        self.load_packages_to_truck(self.truck3_list + self.non_priority_list, self.truck3)
+        load_packages_to_truck(self.truck1_list, self.truck1)
+        load_packages_to_truck(self.truck2_list, self.truck2)
+        load_packages_to_truck(self.truck3_list, self.truck3)
+
+        # Load the non-priority list into all trucks
+        load_packages_to_truck(self.non_priority_list, self.truck1)
+        load_packages_to_truck(self.non_priority_list, self.truck2)
+        load_packages_to_truck(self.non_priority_list, self.truck3)
 
         # Load the last priority list into truck 3
-        self.load_packages_to_truck(self.non_priority_list + self.last_priority_list, self.truck3)          
+        load_packages_to_truck(self.last_priority_list, self.truck3)          
 
 
 

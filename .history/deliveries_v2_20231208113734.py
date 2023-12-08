@@ -763,19 +763,23 @@ class WGUPS:
         second_priority_list = self.top_priority_list[first_half_length:]
 
         # Load the first half of the priority list into truck 1
-        self.load_packages_to_truck(first_priority_list, self.truck1)
+        load_packages_to_truck(first_priority_list, self.truck1)
 
         # Load the second half of the priority list into truck 2
-        self.load_packages_to_truck(second_priority_list, self.truck2)
+        load_packages_to_truck(second_priority_list, self.truck2)
 
         # Load the truck-specific lists into their respective trucks
-        # followed by the non-priority list
-        self.load_packages_to_truck(self.truck1_list + self.non_priority_list, self.truck1)
-        self.load_packages_to_truck(self.truck2_list + self.non_priority_list, self.truck2)
-        self.load_packages_to_truck(self.truck3_list + self.non_priority_list, self.truck3)
+        load_packages_to_truck(self.truck1_list, self.truck1)
+        load_packages_to_truck(self.truck2_list, self.truck2)
+        load_packages_to_truck(self.truck3_list, self.truck3)
+
+        # Load the non-priority list into all trucks
+        load_packages_to_truck(self.non_priority_list, self.truck1)
+        load_packages_to_truck(self.non_priority_list, self.truck2)
+        load_packages_to_truck(self.non_priority_list, self.truck3)
 
         # Load the last priority list into truck 3
-        self.load_packages_to_truck(self.non_priority_list + self.last_priority_list, self.truck3)          
+        load_packages_to_truck(self.last_priority_list, self.truck3)          
 
 
 

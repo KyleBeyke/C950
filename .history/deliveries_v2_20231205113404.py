@@ -518,7 +518,10 @@ class WGUPS:
             # Get the distance from the hub to the package address
             distance = self.get_distance(previous_address, package_address)
             total_distance += distance
-            previous_address = package_address   
+            previous_address = package_address
+            
+        distance = self.get_distance(previous_address, self.hub_address)
+            total_distance += distance    
 
         # Return the total distance
         return total_distance
